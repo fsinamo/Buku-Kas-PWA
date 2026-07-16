@@ -1,0 +1,6 @@
+{
+  "name": "Buku Kas PWA",
+  "description": "Aplikasi Buku Kas Progressive Web App (PWA) dengan sinkronisasi 2-arah Google Sheets via Apps Script, dukungan offline, analitik grafik, dan ekspor PDF/Excel.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
