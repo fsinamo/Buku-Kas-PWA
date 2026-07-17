@@ -195,13 +195,16 @@ export default function App() {
   };
 
   // Transaction Actions
-  const handleTransactionSubmit = (data: {
-    tanggal: string;
-    kategori: string;
-    keterangan: string;
-    debet: number;
-    kredit: number;
-  }) => {
+  const handleTransactionSubmit = (
+    data: {
+      tanggal: string;
+      kategori: string;
+      keterangan: string;
+      debet: number;
+      kredit: number;
+    },
+    syncMode?: 'online' | 'bulk'
+  ) => {
     let updated: Transaction[];
 
     if (editingTransaction) {
@@ -234,8 +237,8 @@ export default function App() {
     setShowFormModal(false);
     setEditingTransaction(null);
 
-    // Auto trigger sync in background
-    if (isOnline && appScriptUrl) {
+    // Auto trigger sync in background unless "bulk" (menumpuk) is chosen
+    if (isOnline && appScriptUrl && syncMode !== 'bulk') {
       triggerSync();
     }
   };

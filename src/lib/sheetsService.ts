@@ -266,6 +266,89 @@ export function mergeCategories(local: Category[], remote: Category[]): {
 }
 
 /**
+ * Helper to fetch from Apps Script, trying our Express proxy first,
+ * and falling back to direct browser-to-Apps Script fetch if the proxy is unavailable
+ * (which happens when deployed on purely static hosting like Vercel or GitHub Pages).
+ */
+async function fetchWithProxyFallback(url: string, action: 'read' | 'sync', payload?: any): Promise<any> {
+  const isSync = action === 'sync';
+  
+  // Try proxy first
+  try {
+    const proxyUrl = isSync 
+      ? '/api/sync-proxy' 
+      : `/api/sync-proxy?url=${encodeURIComponent(url)}&action=read`;
+      
+    const options: RequestInit = isSync ? {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, payload }),
+    } : {
+      method: 'GET',
+    };
+    
+    const response = await fetch(proxyUrl, options);
+    if (response.ok) {
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await response.json();
+        // If the proxy itself returned a scripted error, throw it directly so the user gets detailed diagnostics
+        if (data && data.success === false && data.error) {
+          throw new Error(data.error);
+        }
+        return data;
+      } else {
+        // Not a JSON response! Probably static host SPA index.html fallback redirection
+        throw new Error('Non-JSON response returned from proxy endpoint');
+      }
+    } else {
+      throw new Error(`Proxy responded with HTTP ${response.status}`);
+    }
+  } catch (proxyError: any) {
+    // If the error message is an actual descriptive Apps Script error returned by our proxy, keep it!
+    if (proxyError.message && (
+        proxyError.message.includes('Keamanan Google') || 
+        proxyError.message.includes('ERROR EKSEKUSI') || 
+        proxyError.message.includes('Authorization Required') || 
+        proxyError.message.includes('belum disetujui')
+    )) {
+      throw proxyError;
+    }
+
+    console.warn(`Proxy ${action} failed (${proxyError.message || proxyError}), falling back to direct connection to Google Apps Script...`);
+    
+    // Direct browser-to-Apps Script fetch fallback
+    const directUrl = isSync ? url : `${url}${url.includes('?') ? '&' : '?'}action=read`;
+    
+    // For POST requests, we use text/plain to prevent triggering CORS preflight OPTIONS requests,
+    // which Google Apps Script endpoints do not support. Apps Script parses the raw contents perfectly.
+    const directOptions: RequestInit = isSync ? {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+    } : {
+      method: 'GET',
+    };
+    
+    const response = await fetch(directUrl, directOptions);
+    if (!response.ok) {
+      throw new Error(`Gagal menghubungi Apps Script secara langsung (HTTP ${response.status})`);
+    }
+    
+    const text = await response.text();
+    try {
+      return JSON.parse(text);
+    } catch (parseErr) {
+      // If direct response is HTML, it might contain login page / authorization error
+      if (text.includes('ServiceLogin') || text.includes('accounts.google.com') || text.includes('sign-in')) {
+        throw new Error("Keamanan Google memblokir akses langsung. Pastikan Anda telah menyetujui izin aplikasi dengan mengklik tombol 'Run' (Jalankan) sekali secara manual di editor Apps Script Anda, dan pastikan Web App dideploy dengan opsi Who has access: 'Anyone'.");
+      }
+      throw new Error(`Gagal memproses respon langsung dari Apps Script: ${text.substring(0, 100)}...`);
+    }
+  }
+}
+
+/**
  * Perform actual sync with the Google Sheets Apps Script Web App.
  */
 export async function performSync(): Promise<{
@@ -310,26 +393,8 @@ export async function performSync(): Promise<{
   }
 
   try {
-    // 1. Pull current remote data via our server-side proxy to completely bypass browser CORS and sandbox iframe redirects
-    const proxyGetUrl = `/api/sync-proxy?url=${encodeURIComponent(url)}&action=read`;
-    const response = await fetch(proxyGetUrl, {
-      method: 'GET',
-    });
-
-    if (!response.ok) {
-      let errMsg = `Gagal mengunduh data (HTTP ${response.status})`;
-      try {
-        const errJson = await response.json();
-        if (errJson && errJson.error) {
-          errMsg = errJson.error;
-        }
-      } catch (e) {
-        // use default message
-      }
-      throw new Error(errMsg);
-    }
-
-    const remoteData = await response.json();
+    // 1. Pull current remote data via proxy (or fallback to direct fetch)
+    const remoteData = await fetchWithProxyFallback(url, 'read');
     
     const remoteTx: Transaction[] = Array.isArray(remoteData.transactions) ? remoteData.transactions.map((tx: any) => ({
       id: String(tx.id || ''),
@@ -358,38 +423,14 @@ export async function performSync(): Promise<{
     const txMerge = mergeTransactions(localTx, remoteTx);
     const catMerge = mergeCategories(localCat, remoteCat);
 
-    // 4. Push merged data back to sheets via our server-side proxy
+    // 4. Push merged data back to sheets via proxy (or fallback to direct fetch)
     const syncPayload = {
       action: 'sync',
       transactions: txMerge.toUpload,
       categories: catMerge.toUpload,
     };
 
-    const pushResponse = await fetch('/api/sync-proxy', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url,
-        payload: syncPayload,
-      }),
-    });
-
-    if (!pushResponse.ok) {
-      let errMsg = `Gagal mengunggah data (HTTP ${pushResponse.status})`;
-      try {
-        const errJson = await pushResponse.json();
-        if (errJson && errJson.error) {
-          errMsg = errJson.error;
-        }
-      } catch (e) {
-        // use default message
-      }
-      throw new Error(errMsg);
-    }
-
-    const pushResult = await pushResponse.json();
+    const pushResult = await fetchWithProxyFallback(url, 'sync', syncPayload);
     if (pushResult && pushResult.success === false) {
       throw new Error(pushResult.error || 'Gagal menyimpan data ke Google Sheet.');
     }

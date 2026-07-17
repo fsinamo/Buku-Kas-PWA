@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Plus, X, Calendar, Tag, FileText, ArrowUpRight, ArrowDownRight, DollarSign } from 'lucide-react';
+import { Plus, X, Calendar, Tag, FileText, ArrowUpRight, ArrowDownRight, DollarSign, Wifi, FolderSync } from 'lucide-react';
 import { Transaction, Category } from '../types';
 
 interface TransactionFormProps {
@@ -16,7 +16,7 @@ interface TransactionFormProps {
     keterangan: string;
     debet: number;
     kredit: number;
-  }) => void;
+  }, syncMode?: 'online' | 'bulk') => void;
   onCancel: () => void;
   onAddCategory: (name: string, type: 'income' | 'expense') => void;
 }
@@ -33,6 +33,11 @@ export default function TransactionForm({
   const [kategori, setKategori] = useState('');
   const [keterangan, setKeterangan] = useState('');
   const [jumlah, setJumlah] = useState<number | ''>('');
+  
+  // Storage option state (for adding transactions)
+  const [syncMode, setSyncMode] = useState<'online' | 'bulk'>(() => {
+    return (localStorage.getItem('buku_kas_default_sync_mode') as 'online' | 'bulk') || 'online';
+  });
   
   // Inline category addition state
   const [showAddCat, setShowAddCat] = useState(false);
@@ -105,13 +110,18 @@ export default function TransactionForm({
     }
 
     const amt = Number(jumlah);
+    
+    if (!transactionToEdit) {
+      localStorage.setItem('buku_kas_default_sync_mode', syncMode);
+    }
+
     onSubmit({
       tanggal,
       kategori,
       keterangan: keterangan.trim(),
       debet: type === 'income' ? amt : 0,
       kredit: type === 'expense' ? amt : 0,
-    });
+    }, transactionToEdit ? undefined : syncMode);
   };
 
   const filteredCategories = categories.filter(c => c.type === type && c.status !== 'pending_delete');
@@ -299,6 +309,51 @@ export default function TransactionForm({
             />
           </div>
         </div>
+
+        {/* Storage Option Selector (only shown when adding transactions) */}
+        {!transactionToEdit && (
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100/80 space-y-3">
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Pilihan Penyimpanan Transaksi
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setSyncMode('online')}
+                className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition cursor-pointer ${
+                  syncMode === 'online'
+                    ? 'bg-emerald-50/50 border-emerald-300 text-emerald-800 shadow-sm shadow-emerald-50'
+                    : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 font-bold text-xs">
+                  <Wifi className={`h-4 w-4 ${syncMode === 'online' ? 'text-emerald-600' : 'text-slate-400'}`} />
+                  Simpan Online
+                </div>
+                <p className="text-[10px] mt-1 text-slate-400 leading-normal">
+                  Kirim langsung ke Google Sheets (Real-time)
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSyncMode('bulk')}
+                className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition cursor-pointer ${
+                  syncMode === 'bulk'
+                    ? 'bg-amber-50/50 border-amber-300 text-amber-800 shadow-sm shadow-amber-50'
+                    : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 font-bold text-xs">
+                  <FolderSync className={`h-4 w-4 ${syncMode === 'bulk' ? 'text-amber-600' : 'text-slate-400'}`} />
+                  Menumpuk (Bulk)
+                </div>
+                <p className="text-[10px] mt-1 text-slate-400 leading-normal">
+                  Simpan lokal &amp; gabungkan di sinkronisasi nanti
+                </p>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div className="pt-3 flex gap-3">
