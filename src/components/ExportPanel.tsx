@@ -83,12 +83,12 @@ export default function ExportPanel({ transactions }: ExportPanelProps) {
       doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(22);
-      doc.text('BUKU KAS UTAMA', 15, 18);
+      doc.text('BUKU KAS UTAMA', 10, 18);
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
-      doc.text('Laporan Pertanggungjawaban Keuangan Kas (PWA Sync)', 15, 25);
-      doc.text(`Periode Laporan: ${formatDateIndo(startDate)} s.d. ${formatDateIndo(endDate)}`, 15, 30);
+      doc.text('Laporan Pertanggungjawaban Keuangan Kas (PWA Sync)', 10, 25);
+      doc.text(`Periode Laporan: ${formatDateIndo(startDate)} s.d. ${formatDateIndo(endDate)}`, 10, 30);
 
       // Metainfo on right side
       doc.setFontSize(9);
@@ -100,7 +100,7 @@ export default function ExportPanel({ transactions }: ExportPanelProps) {
       doc.setTextColor(30, 41, 59); // slate-800
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
-      doc.text('Rincian Arus Kas Transaksi', 15, 50);
+      doc.text('Rincian Arus Kas Transaksi', 10, 50);
 
       // Table preparation
       const tableRows = filteredTxs.map((tx, idx) => [
@@ -127,6 +127,7 @@ export default function ExportPanel({ transactions }: ExportPanelProps) {
 
       autoTable(doc, {
         startY: 55,
+        margin: { left: 10, right: 10 },
         head: [['No', 'Tanggal', 'Kategori', 'Keterangan', 'Penerimaan (Debet)', 'Pengeluaran (Kredit)', 'Saldo']],
         body: tableRows,
         theme: 'striped',
@@ -138,13 +139,13 @@ export default function ExportPanel({ transactions }: ExportPanelProps) {
           halign: 'left',
         },
         columnStyles: {
-          0: { cellWidth: 10 },
-          1: { cellWidth: 25 },
-          2: { cellWidth: 30 },
-          3: { cellWidth: 50 },
-          4: { cellWidth: 32, halign: 'right' },
-          5: { cellWidth: 32, halign: 'right' },
-          6: { cellWidth: 32, halign: 'right' },
+          0: { cellWidth: 8, halign: 'center' },
+          1: { cellWidth: 24, halign: 'center' },
+          2: { cellWidth: 28 },
+          3: { cellWidth: 44 },
+          4: { cellWidth: 28, halign: 'right' },
+          5: { cellWidth: 28, halign: 'right' },
+          6: { cellWidth: 30, halign: 'right' },
         },
         styles: {
           fontSize: 8.5,
