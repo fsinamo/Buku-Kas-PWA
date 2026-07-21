@@ -83,11 +83,11 @@ export default function ExportPanel({ transactions }: ExportPanelProps) {
       doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(22);
-      doc.text('BUKU KAS UTAMA', 10, 18);
+      doc.text('BUKU KAS KECIL', 10, 18);
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
-      doc.text('Laporan Pertanggungjawaban Keuangan Kas (PWA Sync)', 10, 25);
+      doc.text('Laporan Kas Kecil', 10, 25);
       doc.text(`Periode Laporan: ${formatDateIndo(startDate)} s.d. ${formatDateIndo(endDate)}`, 10, 30);
 
       // Metainfo on right side
@@ -100,7 +100,7 @@ export default function ExportPanel({ transactions }: ExportPanelProps) {
       doc.setTextColor(30, 41, 59); // slate-800
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
-      doc.text('Rincian Arus Kas Transaksi', 10, 50);
+      doc.text('Rincian Arus Kas Kecil', 10, 50);
 
       // Table preparation
       const tableRows = filteredTxs.map((tx, idx) => [
@@ -206,7 +206,7 @@ export default function ExportPanel({ transactions }: ExportPanelProps) {
 
       // Add worksheet metadata and book
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Kas Utama');
+      XLSX.utils.book_append_sheet(wb, ws, 'Kas Kecil');
 
       // Write workbook file
       XLSX.writeFile(wb, `Laporan_Kas_${startDate}_to_${endDate}.xlsx`);
