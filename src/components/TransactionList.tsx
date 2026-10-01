@@ -25,6 +25,8 @@ interface TransactionListProps {
   categories: Category[];
   onEdit: (tx: Transaction) => void;
   onDelete: (id: string) => void;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 export default function TransactionList({
@@ -32,6 +34,8 @@ export default function TransactionList({
   categories,
   onEdit,
   onDelete,
+  canEdit = true,
+  canDelete = true,
 }: TransactionListProps) {
   // Filters state
   const [search, setSearch] = useState('');
@@ -295,20 +299,27 @@ export default function TransactionList({
                       <div className="flex justify-center items-center gap-2">
                         {tx.status !== 'pending_delete' && (
                           <>
-                            <button
-                              onClick={() => onEdit(tx)}
-                              className="text-slate-400 hover:text-emerald-600 p-1.5 rounded-lg hover:bg-emerald-50 transition"
-                              title="Ubah"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => onDelete(tx.id)}
-                              className="text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition"
-                              title="Hapus"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                            {canEdit && (
+                              <button
+                                onClick={() => onEdit(tx)}
+                                className="text-slate-400 hover:text-emerald-600 p-1.5 rounded-lg hover:bg-emerald-50 transition"
+                                title="Ubah"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </button>
+                            )}
+                            {canDelete && (
+                              <button
+                                onClick={() => onDelete(tx.id)}
+                                className="text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition"
+                                title="Hapus"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            )}
+                            {!canEdit && !canDelete && (
+                              <span className="text-[11px] text-slate-400 italic">Lihat saja</span>
+                            )}
                           </>
                         )}
                         {tx.status === 'pending_delete' && (
@@ -384,20 +395,24 @@ export default function TransactionList({
                 </div>
 
                 {/* Actions Row Mobile */}
-                {tx.status !== 'pending_delete' && (
+                {tx.status !== 'pending_delete' && (canEdit || canDelete) && (
                   <div className="flex justify-end gap-3 mt-1 pt-2 border-t border-slate-50">
-                    <button
-                      onClick={() => onEdit(tx)}
-                      className="flex items-center gap-1 text-xs text-slate-500 hover:text-emerald-600 py-1 px-2 rounded hover:bg-emerald-50 transition font-medium"
-                    >
-                      <Edit2 className="h-3.5 w-3.5" /> Ubah
-                    </button>
-                    <button
-                      onClick={() => onDelete(tx.id)}
-                      className="flex items-center gap-1 text-xs text-slate-500 hover:text-red-600 py-1 px-2 rounded hover:bg-red-50 transition font-medium"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" /> Hapus
-                    </button>
+                    {canEdit && (
+                      <button
+                        onClick={() => onEdit(tx)}
+                        className="flex items-center gap-1 text-xs text-slate-500 hover:text-emerald-600 py-1 px-2 rounded hover:bg-emerald-50 transition font-medium"
+                      >
+                        <Edit2 className="h-3.5 w-3.5" /> Ubah
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        onClick={() => onDelete(tx.id)}
+                        className="flex items-center gap-1 text-xs text-slate-500 hover:text-red-600 py-1 px-2 rounded hover:bg-red-50 transition font-medium"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" /> Hapus
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

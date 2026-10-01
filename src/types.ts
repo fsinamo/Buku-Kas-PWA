@@ -22,8 +22,21 @@ export interface Category {
   status: 'synced' | 'pending_add' | 'pending_delete';
 }
 
+export type UserRole = 'super_admin' | 'admin' | 'operator' | 'viewer';
+
+export interface AppUser {
+  email: string;
+  name: string;
+  role: UserRole;
+  createdAt: number;
+  lastLogin: number;
+  isInitialSuperAdmin?: boolean;
+}
+
 export interface UserSession {
   email: string;
+  name: string;
+  role: UserRole;
   loggedInAt: number;
   expiresAt: number;
 }
@@ -37,4 +50,5 @@ export interface SyncStatus {
 export interface SheetDataPayload {
   transactions: Transaction[];
   categories: Category[];
+  users?: AppUser[];
 }
