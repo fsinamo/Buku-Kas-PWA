@@ -28,6 +28,8 @@ export interface AppUser {
   email: string;
   name: string;
   role: UserRole;
+  picture?: string;
+  isGoogleVerified?: boolean;
   createdAt: number;
   lastLogin: number;
   isInitialSuperAdmin?: boolean;
@@ -37,6 +39,8 @@ export interface UserSession {
   email: string;
   name: string;
   role: UserRole;
+  picture?: string;
+  isGoogleVerified?: boolean;
   loggedInAt: number;
   expiresAt: number;
 }

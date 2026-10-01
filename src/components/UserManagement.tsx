@@ -21,6 +21,7 @@ import {
   registerOrUpdateUser,
   changeUserRole,
   deleteUser,
+  formatDisplayName,
 } from '../lib/sheetsService';
 
 interface UserManagementProps {
@@ -245,6 +246,7 @@ export default function UserManagement({
             <tbody className="divide-y divide-slate-100 text-slate-700">
               {users.map((user) => {
                 const isCurrent = user.email.toLowerCase() === currentSession.email.toLowerCase();
+                const safeName = formatDisplayName(user.email, user.name);
                 const formattedDate = new Date(user.lastLogin).toLocaleDateString('id-ID', {
                   day: 'numeric',
                   month: 'short',
@@ -258,11 +260,11 @@ export default function UserManagement({
                     <td className="py-3.5 px-3">
                       <div className="flex items-center gap-2.5">
                         <div className="h-8 w-8 rounded-full bg-slate-100 text-slate-700 font-bold flex items-center justify-center text-xs shrink-0 uppercase">
-                          {user.name.charAt(0) || user.email.charAt(0)}
+                          {safeName.charAt(0) || user.email.charAt(0)}
                         </div>
                         <div>
                           <div className="font-semibold text-slate-800 flex items-center gap-1.5">
-                            {user.name}
+                            {safeName}
                             {isCurrent && (
                               <span className="bg-purple-100 text-purple-800 text-[10px] font-bold px-1.5 py-0.2 rounded">
                                 Anda

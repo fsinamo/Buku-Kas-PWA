@@ -80,22 +80,85 @@ export function validateAppScriptUrl(url: string): { isValid: boolean; error: st
 // USER & ROLES MANAGEMENT
 // ========================
 
+const GOOGLE_CLIENT_ID_KEY = 'buku_kas_google_client_id';
+
+export function getSavedGoogleClientId(): string {
+  return localStorage.getItem(GOOGLE_CLIENT_ID_KEY) || (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID || '';
+}
+
+export function saveGoogleClientId(clientId: string): void {
+  if (clientId) {
+    localStorage.setItem(GOOGLE_CLIENT_ID_KEY, clientId.trim());
+  } else {
+    localStorage.removeItem(GOOGLE_CLIENT_ID_KEY);
+  }
+}
+
+/**
+ * Clean name helper: Ensure no password, secret, or invalid string is used as a user's display name.
+ */
+export function formatDisplayName(email: string, rawName?: string): string {
+  const emailPrefix = email ? email.split('@')[0] : 'Pengguna';
+  const cleanEmailName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+
+  if (!rawName || rawName.trim() === '') {
+    return cleanEmailName;
+  }
+
+  const trimmed = rawName.trim();
+
+  // If the string contains underscores, passwords characters like numbers concatenated, or resembles password
+  if (
+    trimmed.includes('_') ||
+    trimmed.toLowerCase().includes('password') ||
+    trimmed.toLowerCase().includes('ravina') ||
+    trimmed.length < 2 ||
+    trimmed.length > 35
+  ) {
+    return cleanEmailName;
+  }
+
+  return trimmed;
+}
+
 export function getLocalUsers(): AppUser[] {
   const data = localStorage.getItem(USERS_KEY);
-  return data ? JSON.parse(data) : [];
+  if (!data) return [];
+  try {
+    const list: AppUser[] = JSON.parse(data);
+    // Sanitize any existing names to clean display names
+    return list.map(u => ({
+      ...u,
+      name: formatDisplayName(u.email, u.name),
+    }));
+  } catch {
+    return [];
+  }
 }
 
 export function saveLocalUsers(users: AppUser[]): void {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  // Always sanitize names before storing
+  const sanitized = users.map(u => ({
+    ...u,
+    name: formatDisplayName(u.email, u.name),
+  }));
+  localStorage.setItem(USERS_KEY, JSON.stringify(sanitized));
 }
 
 /**
  * Register or authenticate a user.
  * The first person to ever register or configure the system is designated as super_admin.
  */
-export function registerOrUpdateUser(email: string, name: string, preferredRole?: UserRole): AppUser {
+export function registerOrUpdateUser(
+  email: string,
+  rawName?: string,
+  preferredRole?: UserRole,
+  isGoogleVerified: boolean = false,
+  picture?: string
+): AppUser {
   const sanitizedEmail = email.trim().toLowerCase();
   const currentUsers = getLocalUsers();
+  const safeName = formatDisplayName(sanitizedEmail, rawName);
 
   const existingIndex = currentUsers.findIndex(u => u.email.toLowerCase() === sanitizedEmail);
 
@@ -103,7 +166,9 @@ export function registerOrUpdateUser(email: string, name: string, preferredRole?
     const existing = currentUsers[existingIndex];
     const updated: AppUser = {
       ...existing,
-      name: name.trim() || existing.name,
+      name: safeName || existing.name,
+      isGoogleVerified: isGoogleVerified || existing.isGoogleVerified,
+      picture: picture || existing.picture,
       lastLogin: Date.now(),
     };
     currentUsers[existingIndex] = updated;
@@ -118,8 +183,10 @@ export function registerOrUpdateUser(email: string, name: string, preferredRole?
 
   const newUser: AppUser = {
     email: sanitizedEmail,
-    name: name.trim() || sanitizedEmail.split('@')[0],
+    name: safeName,
     role,
+    picture,
+    isGoogleVerified,
     createdAt: Date.now(),
     lastLogin: Date.now(),
     isInitialSuperAdmin: isFirstUser,

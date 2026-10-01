@@ -48,6 +48,7 @@ import {
   getLastSyncTime,
   performSync,
   registerOrUpdateUser,
+  formatDisplayName,
 } from './lib/sheetsService';
 
 export default function App() {
@@ -84,13 +85,16 @@ export default function App() {
       try {
         const parsed: UserSession = JSON.parse(savedSession);
         if (Date.now() < parsed.expiresAt) {
+          // Cleanse display name to guarantee no sensitive string or password is shown
+          parsed.name = formatDisplayName(parsed.email, parsed.name);
+          
           // Verify with latest local user role in case it was updated
           const currentUsers = getLocalUsers();
           const match = currentUsers.find(u => u.email.toLowerCase() === parsed.email.toLowerCase());
           if (match && match.role !== parsed.role) {
             parsed.role = match.role;
-            localStorage.setItem('buku_kas_user_session', JSON.stringify(parsed));
           }
+          localStorage.setItem('buku_kas_user_session', JSON.stringify(parsed));
           setSession(parsed);
         } else {
           localStorage.removeItem('buku_kas_user_session');
@@ -771,7 +775,9 @@ export default function App() {
             <div className="flex items-center gap-2.5 border-l border-slate-100 pl-3">
               <div className="hidden lg:block text-right">
                 <div className="flex items-center justify-end gap-1.5">
-                  <span className="text-xs font-semibold text-slate-700">{session.name || session.email}</span>
+                  <span className="text-xs font-semibold text-slate-700">
+                    {formatDisplayName(session.email, session.name)}
+                  </span>
                   <span className={`text-[10px] font-bold px-2 py-0.2 rounded-full border ${getRoleBadge(session.role).style}`}>
                     {getRoleBadge(session.role).label}
                   </span>
